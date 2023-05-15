@@ -6,6 +6,7 @@ namespace io3x1\FilamentUser\Resources;
 
 use Closure;
 use App\Models\User;
+use Cog\Laravel\Ban\Scopes\BannedAtScope;
 use Illuminate\Support\Str;
 use Filament\Forms\Components\TextInput;
 use STS\FilamentImpersonate\Impersonate;
@@ -207,6 +208,7 @@ class UserResource extends Resource
             ->with(['roles', 'role', 'location', 'media'])
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
+                BannedAtScope::class,
             ])
             ->orderColumn();
     }
@@ -524,6 +526,9 @@ class UserResource extends Resource
             ->bulkActions([
                 //                Ban::make('ban'),
                 //                Unban::make('unban'),
+
+                \Widiu7omo\FilamentBandel\Actions\BanBulkAction::make('banned_model'),
+                \Widiu7omo\FilamentBandel\Actions\UnbanBulkAction::make('unbanned_model'),
                 Tables\Actions\DeleteBulkAction::make(),
                 Tables\Actions\ForceDeleteBulkAction::make(),
                 Tables\Actions\RestoreBulkAction::make(),
