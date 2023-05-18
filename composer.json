@@ -26,13 +26,13 @@
     "minimum-stability": "dev",
     "require": {
         "php": "^8.1",
-        "abanoubnassem/filament-phone-field": "^0.0.4",
         "bezhansalleh/filament-shield": "^2.3",
         "filament/filament": "^2.16",
         "phpsa/filament-password-reveal": "^1.1",
         "spatie/laravel-package-tools": "^1.14",
         "stechstudio/filament-impersonate": "^2.11",
-        "queents/console-helpers": "^1.0"
+        "queents/console-helpers": "^1.0",
+        "widiu7omo/filament-bandel": "^1.0"
     },
     "config": {
         "sort-packages": true
