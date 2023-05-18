@@ -112,11 +112,11 @@ class UserResource extends Resource
                                     ->label('Roles')
                                     ->required(false),
 
-                                Forms\Components\Select::make('role_id')
-                                    ->label('TYPE')
-//                                    ->options(getUserRoleArray())
-                                    ->searchable()
-                                    ->required(condition: false),
+//                                Forms\Components\Select::make('role_id')
+//                                    ->label('TYPE')
+////                                    ->options(getUserRoleArray())
+//                                    ->searchable()
+//                                    ->required(condition: false),
                             ])
                             ->compact()
                             ->collapsed(false)
@@ -205,7 +205,7 @@ class UserResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with(['roles', 'role', 'location', 'media'])
+            ->with(['roles', 'media'])
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
                 BannedAtScope::class,
@@ -215,23 +215,23 @@ class UserResource extends Resource
 
     public static function getGloballySearchableAttributes(): array
     {
-        return ['name', 'email', 'phone', 'role.name', 'location.name'];
+        return ['name', 'email', 'phone'];
     }
 
-    public static function getGlobalSearchResultDetails($record): array
-    {
-        $details = [];
-
-        if (@$record->role) {
-            $details['Type'] = @$record->role->name;
-        }
-
-        if (@$record->location) {
-            $details['Location'] = @$record->location->name;
-        }
-
-        return $details;
-    }
+//    public static function getGlobalSearchResultDetails($record): array
+//    {
+//        $details = [];
+//
+//        if (@$record->role) {
+//            $details['Type'] = @$record->role->name;
+//        }
+//
+//        if (@$record->location) {
+//            $details['Location'] = @$record->location->name;
+//        }
+//
+//        return $details;
+//    }
 
     public static function getLabel(): string
     {
@@ -378,17 +378,17 @@ class UserResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('role.name')
-                    ->label('TYPE')
-                    ->icon(fn ($record) => @$record->role ? 'heroicon-s-shield-exclamation' : '')
-                    ->wrap()
-                    ->size('sm')
-                    ->weight('bold')
-                    ->fontFamily('mono')
-                    ->color('primary')
-                    ->searchable()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: false),
+//                Tables\Columns\TextColumn::make('role.name')
+//                    ->label('TYPE')
+//                    ->icon(fn ($record) => @$record->role ? 'heroicon-s-shield-exclamation' : '')
+//                    ->wrap()
+//                    ->size('sm')
+//                    ->weight('bold')
+//                    ->fontFamily('mono')
+//                    ->color('primary')
+//                    ->searchable()
+//                    ->sortable()
+//                    ->toggleable(isToggledHiddenByDefault: false),
 
                 Tables\Columns\TextColumn::make('roles.name')
                     ->formatStateUsing(fn ($state): string => Str::headline(@$state))
@@ -412,17 +412,17 @@ class UserResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('balance')
-                    ->label('BALANCE')
-                    ->color('success')
-                    ->icon(fn ($record) => @$record->balance ? 'heroicon-s-currency-rupee' : '')
-                    ->wrap()
-                    ->size('sm')
-                    ->weight('bold')
-                    ->fontFamily('mono')
-                    ->searchable()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: false),
+//                Tables\Columns\TextColumn::make('balance')
+//                    ->label('BALANCE')
+//                    ->color('success')
+//                    ->icon(fn ($record) => @$record->balance ? 'heroicon-s-currency-rupee' : '')
+//                    ->wrap()
+//                    ->size('sm')
+//                    ->weight('bold')
+//                    ->fontFamily('mono')
+//                    ->searchable()
+//                    ->sortable()
+//                    ->toggleable(isToggledHiddenByDefault: false),
 
                 Tables\Columns\TextColumn::make('address')
                     ->label('ADDRESS')
@@ -470,15 +470,15 @@ class UserResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('location.name')
-                    ->label('LOCATION')
-                    ->wrap()
-                    ->size('sm')
-                    ->weight('bold')
-                    ->fontFamily('mono')
-                    ->searchable()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+//                Tables\Columns\TextColumn::make('location.name')
+//                    ->label('LOCATION')
+//                    ->wrap()
+//                    ->size('sm')
+//                    ->weight('bold')
+//                    ->fontFamily('mono')
+//                    ->searchable()
+//                    ->sortable()
+//                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('updated_at')
                     ->label('UPDATED')
