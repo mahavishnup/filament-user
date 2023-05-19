@@ -23,6 +23,7 @@ use Phpsa\FilamentPasswordReveal\Password;
 use STS\FilamentImpersonate\Impersonate;
 use Widiu7omo\FilamentBandel\Actions\BanBulkAction;
 use Widiu7omo\FilamentBandel\Actions\UnbanBulkAction;
+use Wiebenieuwenhuis\FilamentCharCounter\TextInput;
 
 class UserResource extends Resource
 {
@@ -50,13 +51,13 @@ class UserResource extends Resource
                             ->schema([
                                 Forms\Components\Grid::make()
                                     ->schema([
-                                        Forms\Components\TextInput::make('name')
+                                        TextInput::make('name')
                                             ->label('NAME')
                                             ->placeholder('Name')
                                             ->maxLength(191)
                                             ->required(false),
 
-                                        Forms\Components\TextInput::make('email')
+                                        TextInput::make('email')
                                             ->label('EMAIL')
                                             ->placeholder('Email address')
                                             ->email()
@@ -70,7 +71,7 @@ class UserResource extends Resource
                                             ->label('Password')
                                             ->placeholder('Password')
                                             ->password()
-                                            ->maxLength(255)
+                                            ->maxLength(191)
                                             ->required()
                                             ->visibleOn('create')
                                             ->dehydrateStateUsing(static function ($state) use ($form) {
@@ -203,7 +204,6 @@ class UserResource extends Resource
             Forms\Components\TextInput::make('address')
                 ->label('ADDRESS')
                 ->placeholder('Address')
-                ->maxLength(191)
                 ->required(false),
         ];
     }
@@ -211,42 +211,42 @@ class UserResource extends Resource
     public static function getOther($hidden = false): array
     {
         return [
-            Forms\Components\TextInput::make('id_proof')
+            TextInput::make('id_proof')
                 ->label('ID PROOF')
                 ->placeholder('ID Proof')
                 ->maxLength(191)
                 ->hidden($hidden)
                 ->required(false),
 
-            Forms\Components\TextInput::make('fax')
+            TextInput::make('fax')
                 ->label('FAX')
                 ->placeholder('Fax')
                 ->maxLength(191)
                 ->hidden($hidden)
                 ->required(false),
 
-            Forms\Components\TextInput::make('endosment')
+            TextInput::make('endosment')
                 ->label('ENDOSMENT')
                 ->placeholder('Endosment')
                 ->maxLength(191)
                 ->hidden($hidden)
                 ->required(false),
 
-            Forms\Components\TextInput::make('business_name')
+            TextInput::make('business_name')
                 ->label('BUSINESS NAME')
                 ->placeholder('Business Name')
                 ->maxLength(191)
                 ->hidden($hidden)
                 ->required(false),
 
-            Forms\Components\TextInput::make('gst_no')
+            TextInput::make('gst_no')
                 ->label('GST NO')
                 ->placeholder('GST No')
                 ->maxLength(191)
                 ->hidden($hidden)
                 ->required(false),
 
-            Forms\Components\TextInput::make('pan_no')
+            TextInput::make('pan_no')
                 ->label('PAN NO')
                 ->placeholder('Pan No')
                 ->maxLength(191)
@@ -297,7 +297,7 @@ class UserResource extends Resource
                 ->required(condition: false)
                 ->reactive(),
 
-            Forms\Components\TextInput::make('association_name')
+            TextInput::make('association_name')
                 ->label('ASSOCIATION NAME')
                 ->placeholder('Association Name')
                 ->maxLength(191)
