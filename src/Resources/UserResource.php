@@ -4,21 +4,25 @@ declare(strict_types=1);
 
 namespace io3x1\FilamentUser\Resources;
 
-use Closure;
-use App\Models\User;
-use Cog\Laravel\Ban\Scopes\BannedAtScope;
-use Illuminate\Support\Str;
-use Filament\Forms\Components\TextInput;
-use STS\FilamentImpersonate\Impersonate;
-use Phpsa\FilamentPasswordReveal\Password;
-use Illuminate\Support\Facades\{Auth, Hash};
-use Filament\Resources\{Form, Resource, Table};
-use io3x1\FilamentUser\Resources\UserResource\Pages;
-use Illuminate\Database\Eloquent\{Builder, SoftDeletingScope};
 use AbanoubNassem\FilamentPhoneField\Forms\Components\PhoneInput;
 use AlperenErsoy\FilamentExport\Actions\FilamentExportBulkAction;
+use App\Enums\OfficeList;
+use App\Enums\UserType;
+use App\Models\User;
+use App\Services\V1\FilamentCacheModel;
+use Closure;
+use Cog\Laravel\Ban\Scopes\BannedAtScope;
 use Filament\{Forms, Forms\Components\SpatieMediaLibraryFileUpload, Tables};
-use Filament\Tables\Columns\{BooleanColumn, SpatieMediaLibraryImageColumn, TextColumn};
+use Filament\Resources\{Form, Resource, Table};
+use Filament\Tables\Columns\{SpatieMediaLibraryImageColumn};
+use Illuminate\Database\Eloquent\{Builder, SoftDeletingScope};
+use Illuminate\Support\Facades\{Auth, Hash};
+use Illuminate\Support\Str;
+use io3x1\FilamentUser\Resources\UserResource\Pages;
+use Phpsa\FilamentPasswordReveal\Password;
+use STS\FilamentImpersonate\Impersonate;
+use Widiu7omo\FilamentBandel\Actions\BanBulkAction;
+use Widiu7omo\FilamentBandel\Actions\UnbanBulkAction;
 
 class UserResource extends Resource
 {
@@ -38,7 +42,6 @@ class UserResource extends Resource
 
     public static function form(Form $form): Form
     {
-
         return $form
             ->schema([
                 Forms\Components\Group::make()
@@ -47,9 +50,6 @@ class UserResource extends Resource
                             ->schema([
                                 Forms\Components\Grid::make()
                                     ->schema([
-                                        Forms\Components\Hidden::make('can_access_filament')->default(true),
-                                        Forms\Components\Hidden::make('email_verified_at')->default(now()),
-
                                         Forms\Components\TextInput::make('name')
                                             ->label('NAME')
                                             ->placeholder('Name')
@@ -73,7 +73,15 @@ class UserResource extends Resource
                                             ->maxLength(255)
                                             ->required()
                                             ->visibleOn('create')
-                                            ->dehydrateStateUsing(fn ($state) => ! empty($state) ? Hash::make($state) : ''),
+                                            ->dehydrateStateUsing(static function ($state) use ($form) {
+                                                if (!empty($state)) {
+                                                    return Hash::make($state);
+                                                }
+
+                                                $user = User::find($form->getColumns());
+
+                                                return $user->password ?? null;
+                                            }),
                                     ])
                                     ->columns(2),
                             ])
@@ -99,7 +107,35 @@ class UserResource extends Resource
                     ->schema([
                         Forms\Components\Section::make('STATUS')
                             ->schema([
+                                Forms\Components\Toggle::make('can_access_filament')
+                                    ->inline()
+                                    ->onIcon('heroicon-s-check-circle')
+                                    ->offIcon('heroicon-s-x-circle')
+                                    ->onColor('success')
+                                    ->offColor('danger')
+                                    ->helperText('Extranet access or not?')
+                                    ->label('Extranet')
+                                    ->default(0)
+                                    ->columnSpan(1)
+                                    ->required(condition: false),
+
                                 static::getBalance(),
+
+                                Forms\Components\Placeholder::make('email_verified_at')
+                                    ->label('Email verified at')
+                                    ->content(fn($record): ?string => @$record->email_verified_at?->diffForHumans()),
+
+                                Forms\Components\Placeholder::make('phone_verified_at')
+                                    ->label('Phone verified at')
+                                    ->content(fn($record): ?string => @$record->phone_verified_at?->diffForHumans()),
+
+                                Forms\Components\Placeholder::make('created_at')
+                                    ->label('Created at')
+                                    ->content(fn($record): ?string => $record->created_at?->diffForHumans()),
+
+                                Forms\Components\Placeholder::make('updated_at')
+                                    ->label('Last modified at')
+                                    ->content(fn($record): ?string => $record->updated_at?->diffForHumans()),
                             ])
                             ->compact()
                             ->collapsed(false)
@@ -112,19 +148,19 @@ class UserResource extends Resource
                                     ->label('Roles')
                                     ->required(false),
 
-//                                Forms\Components\Select::make('role_id')
-//                                    ->label('TYPE')
-////                                    ->options(getUserRoleArray())
-//                                    ->searchable()
-//                                    ->required(condition: false),
+                                Forms\Components\Select::make('role')
+                                    ->label('USER ROLE')
+                                    ->options(UserType::forRoleToArray())
+                                    ->searchable()
+                                    ->required(condition: false),
                             ])
                             ->compact()
                             ->collapsed(false)
                             ->collapsible(),
 
-                        Forms\Components\Section::make('LOCATION')
+                        Forms\Components\Section::make('OFFICE')
                             ->schema([
-                                static::getLocation(),
+                                static::getOffice(),
                             ])
                             ->compact()
                             ->collapsed(false)
@@ -141,111 +177,35 @@ class UserResource extends Resource
                     ->columnSpan(['lg' => 1]),
             ])
             ->columns(3);
-
-        $rows = [
-            TextInput::make('name')->required()->label(trans('filament-user::user.resource.name')),
-            TextInput::make('email')->email()->required()->label(trans('filament-user::user.resource.email')),
-            Forms\Components\TextInput::make('password')->label(trans('filament-user::user.resource.password'))
-                ->password()
-                ->maxLength(255)
-                ->dehydrateStateUsing(static function ($state) use ($form) {
-                    if ( ! empty($state)) {
-                        return Hash::make($state);
-                    }
-
-                    $user = User::find($form->getColumns());
-                    if ($user) {
-                        return $user->password;
-                    }
-                }),
-        ];
-
-        if (config('filament-user.shield')) {
-            $rows[] = Forms\Components\MultiSelect::make('roles')->relationship('roles', 'name')->label(trans('filament-user::user.resource.roles'));
-        }
-
-        $form->schema($rows);
-
-        return $form;
     }
 
-    public static function getAssociation($hidden = false): array
+    public static function getPhone(): array
     {
         return [
-            Forms\Components\Toggle::make('association')
-                ->inline()
-                ->onIcon('heroicon-s-check-circle')
-                ->offIcon('heroicon-s-x-circle')
-                ->onColor('success')
-                ->offColor('danger')
-                ->helperText('Register with association or not?')
-                ->label('ASSOCIATION STATUS')
-                ->hidden($hidden)
-                ->default(0)
-                ->required(condition: false)
-                ->reactive(),
-
-            Forms\Components\TextInput::make('association_name')
-                ->label('ASSOCIATION NAME')
-                ->placeholder('Association Name')
+            PhoneInput::make('phone')
+                ->label('PHONE NO')
+                ->placeholder('Phone number')
+                ->initialCountry('in')
+                ->tel()
+                ->telRegex('/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\.\/0-9]*$/')
                 ->maxLength(191)
-                ->hidden($hidden)
-                ->visible(fn (Closure $get) => $get('association'))
+                ->required(false),
+
+            PhoneInput::make('mobile')
+                ->label('MOBILE NO')
+                ->placeholder('Mobile number')
+                ->initialCountry('in')
+                ->tel()
+                ->telRegex('/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\.\/0-9]*$/')
+                ->maxLength(191)
+                ->required(false),
+
+            Forms\Components\TextInput::make('address')
+                ->label('ADDRESS')
+                ->placeholder('Address')
+                ->maxLength(191)
                 ->required(false),
         ];
-    }
-
-    public static function getBalance(): Forms\Components\Placeholder
-    {
-        return Forms\Components\Placeholder::make('balance')
-            ->label('WALLET BALANCE')
-            ->content(fn ($record): ?string => '₹' . numberFormat(@$record->balance ?: @Auth::user()->balance));
-    }
-
-    public static function getEloquentQuery(): Builder
-    {
-        return parent::getEloquentQuery()
-            ->with(['roles', 'media'])
-            ->withoutGlobalScopes([
-                SoftDeletingScope::class,
-                BannedAtScope::class,
-            ])
-            ->orderColumn();
-    }
-
-    public static function getGloballySearchableAttributes(): array
-    {
-        return ['name', 'email', 'phone'];
-    }
-
-//    public static function getGlobalSearchResultDetails($record): array
-//    {
-//        $details = [];
-//
-//        if (@$record->role) {
-//            $details['Type'] = @$record->role->name;
-//        }
-//
-//        if (@$record->location) {
-//            $details['Location'] = @$record->location->name;
-//        }
-//
-//        return $details;
-//    }
-
-    public static function getLabel(): string
-    {
-        return trans('filament-user::user.resource.single');
-    }
-
-    public static function getLocation($hidden = false): Forms\Components\Select
-    {
-        return Forms\Components\Select::make('location_id')
-            ->label('LOCATION')
-//            ->options(getSettingRootLevelSettings(categories: ['user-location'], key: 'id'))
-            ->searchable()
-            ->hidden($hidden)
-            ->required(condition: false);
     }
 
     public static function getOther($hidden = false): array
@@ -304,41 +264,65 @@ class UserResource extends Resource
         ];
     }
 
+    public static function getBalance(): Forms\Components\Placeholder
+    {
+        return Forms\Components\Placeholder::make('balance')
+            ->label('WALLET BALANCE')
+            ->content(fn($record): ?string => '₹' . numberFormat(@$record->balance ?: @Auth::user()->balance));
+    }
+
+    public static function getOffice($hidden = false): Forms\Components\Select
+    {
+        return Forms\Components\Select::make('office')
+            ->label('OFFICE')
+            ->options(OfficeList::toArray())
+            ->searchable()
+            ->hidden($hidden)
+            ->required(condition: false);
+    }
+
+    public static function getAssociation($hidden = false): array
+    {
+        return [
+            Forms\Components\Toggle::make('association')
+                ->inline()
+                ->onIcon('heroicon-s-check-circle')
+                ->offIcon('heroicon-s-x-circle')
+                ->onColor('success')
+                ->offColor('danger')
+                ->helperText('Register with association or not?')
+                ->label('ASSOCIATION STATUS')
+                ->hidden($hidden)
+                ->default(0)
+                ->required(condition: false)
+                ->reactive(),
+
+            Forms\Components\TextInput::make('association_name')
+                ->label('ASSOCIATION NAME')
+                ->placeholder('Association Name')
+                ->maxLength(191)
+                ->hidden($hidden)
+                ->visible(fn(Closure $get) => $get('association'))
+                ->required(false),
+        ];
+    }
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['name', 'email', 'phone'];
+    }
+
+    public static function getLabel(): string
+    {
+        return trans('filament-user::user.resource.single');
+    }
+
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListUsers::route('/'),
             'create' => Pages\CreateUser::route('/create'),
             'edit' => Pages\EditUser::route('/{record}/edit'),
-        ];
-    }
-
-    public static function getPhone(): array
-    {
-        return [
-            PhoneInput::make('phone')
-                ->label('PHONE NO')
-                ->placeholder('Phone number')
-                ->initialCountry('in')
-                ->tel()
-                ->telRegex('/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\.\/0-9]*$/')
-                ->maxLength(191)
-                ->required(false),
-
-            PhoneInput::make('mobile')
-                ->label('MOBILE NO')
-                ->placeholder('Mobile number')
-                ->initialCountry('in')
-                ->tel()
-                ->telRegex('/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\.\/0-9]*$/')
-                ->maxLength(191)
-                ->required(false),
-
-            Forms\Components\TextInput::make('address')
-                ->label('ADDRESS')
-                ->placeholder('Address')
-                ->maxLength(191)
-                ->required(false),
         ];
     }
 
@@ -351,15 +335,6 @@ class UserResource extends Resource
     {
         $table
             ->columns([
-                //                TextColumn::make('id')->sortable()->label(trans('filament-user::user.resource.id')),
-                //                TextColumn::make('name')->sortable()->searchable()->label(trans('filament-user::user.resource.name')),
-                //                TextColumn::make('email')->sortable()->searchable()->label(trans('filament-user::user.resource.email')),
-                //                BooleanColumn::make('email_verified_at')->sortable()->searchable()->label(trans('filament-user::user.resource.email_verified_at')),
-                //                Tables\Columns\TextColumn::make('created_at')->label(trans('filament-user::user.resource.created_at'))
-                //                    ->dateTime('M j, Y')->sortable(),
-                //                Tables\Columns\TextColumn::make('updated_at')->label(trans('filament-user::user.resource.updated_at'))
-                //                    ->dateTime('M j, Y')->sortable(),
-
                 Tables\Columns\TextColumn::make('name')
                     ->label('NAME')
                     ->wrap()
@@ -378,21 +353,22 @@ class UserResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-//                Tables\Columns\TextColumn::make('role.name')
-//                    ->label('TYPE')
-//                    ->icon(fn ($record) => @$record->role ? 'heroicon-s-shield-exclamation' : '')
-//                    ->wrap()
-//                    ->size('sm')
-//                    ->weight('bold')
-//                    ->fontFamily('mono')
-//                    ->color('primary')
-//                    ->searchable()
-//                    ->sortable()
-//                    ->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('role')
+                    ->label('TYPE')
+                    ->formatStateUsing(fn($record) => @$record->role?->name())
+                    ->icon(fn($record) => @$record->role ? 'heroicon-s-shield-exclamation' : '')
+                    ->wrap()
+                    ->size('sm')
+                    ->weight('bold')
+                    ->fontFamily('mono')
+                    ->color('primary')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 Tables\Columns\TextColumn::make('roles.name')
-                    ->formatStateUsing(fn ($state): string => Str::headline(@$state))
-                    ->icon(fn ($record) => @count(@$record->roles ?: []) >= 1 ? 'heroicon-s-shield-check' : '')
+                    ->formatStateUsing(fn($state) => Str::headline(@$state))
+                    ->icon(fn($record) => @count(@$record->roles ?: []) >= 1 ? 'heroicon-s-shield-check' : '')
                     ->label('ROLES')
                     ->wrap()
                     ->size('sm')
@@ -412,17 +388,16 @@ class UserResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-//                Tables\Columns\TextColumn::make('balance')
-//                    ->label('BALANCE')
-//                    ->color('success')
-//                    ->icon(fn ($record) => @$record->balance ? 'heroicon-s-currency-rupee' : '')
-//                    ->wrap()
-//                    ->size('sm')
-//                    ->weight('bold')
-//                    ->fontFamily('mono')
-//                    ->searchable()
-//                    ->sortable()
-//                    ->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('balance')
+                    ->label('WALLET')
+                    ->color('success')
+                    ->icon('heroicon-s-currency-rupee')
+                    ->wrap()
+                    ->size('sm')
+                    ->weight('bold')
+                    ->fontFamily('mono')
+                    ->searchable()
+                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('address')
                     ->label('ADDRESS')
@@ -470,15 +445,16 @@ class UserResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-//                Tables\Columns\TextColumn::make('location.name')
-//                    ->label('LOCATION')
-//                    ->wrap()
-//                    ->size('sm')
-//                    ->weight('bold')
-//                    ->fontFamily('mono')
-//                    ->searchable()
-//                    ->sortable()
-//                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('office')
+                    ->formatStateUsing(fn($record) => @$record->office?->name())
+                    ->label('OFFICE')
+                    ->wrap()
+                    ->size('sm')
+                    ->weight('bold')
+                    ->fontFamily('mono')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('updated_at')
                     ->label('UPDATED')
@@ -486,49 +462,38 @@ class UserResource extends Resource
                     ->size('sm')
                     ->weight('bold')
                     ->fontFamily('mono')
-                    ->formatStateUsing(fn ($record): string => @$record?->updated_at->diffForHumans(['short' => true]))
+                    ->formatStateUsing(fn($record): string => @$record?->updated_at->diffForHumans(['short' => true]))
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
             ])
             ->filters([
-                //                Tables\Filters\Filter::make('verified')
-                //                    ->label(trans('filament-user::user.resource.verified'))
-                //                    ->query(fn (Builder $query): Builder => $query->whereNotNull('email_verified_at')),
-                //                Tables\Filters\Filter::make('unverified')
-                //                    ->label(trans('filament-user::user.resource.unverified'))
-                //                    ->query(fn (Builder $query): Builder => $query->whereNull('email_verified_at')),
-
                 Tables\Filters\TrashedFilter::make()
                     ->label('Deleted Records'),
 
-                //                Tables\Filters\SelectFilter::make('role_id')
-                //                    ->label('Type')
-                //                    ->placeholder('Select an type')
-                //                    ->searchable()
-                //                    ->multiple()
-                //                    ->options(getSettingRootLevelSettings(categories: ['user-role'], key: 'id'))
-                //                    ->attribute('role_id'),
-                //
-                //                Tables\Filters\SelectFilter::make('location_id')
-                //                    ->label('Location')
-                //                    ->placeholder('Select an location')
-                //                    ->searchable()
-                //                    ->multiple()
-                //                    ->options(getSettingRootLevelSettings(categories: ['user-location'], key: 'id'))
-                //                    ->attribute('location_id'),
+                Tables\Filters\SelectFilter::make('role')
+                    ->label('User Role')
+                    ->placeholder('Select an user role')
+                    ->searchable()
+                    ->multiple()
+                    ->options(UserType::forRoleToArray())
+                    ->attribute('role'),
+
+                Tables\Filters\SelectFilter::make('office')
+                    ->label('Office')
+                    ->placeholder('Select an office')
+                    ->searchable()
+                    ->multiple()
+                    ->options(OfficeList::toArray())
+                    ->attribute('office'),
             ])
             ->actions([
-                Impersonate::make()
-                    ->redirectTo(route('filament.pages.dashboard')),
+                Impersonate::make()->redirectTo(route('filament.pages.dashboard')),
                 Tables\Actions\EditAction::make('name'),
                 Tables\Actions\DeleteAction::make('id'),
             ])
             ->bulkActions([
-                //                Ban::make('ban'),
-                //                Unban::make('unban'),
-
-                \Widiu7omo\FilamentBandel\Actions\BanBulkAction::make('banned_model'),
-                \Widiu7omo\FilamentBandel\Actions\UnbanBulkAction::make('unbanned_model'),
+                BanBulkAction::make('banned_model'),
+                UnbanBulkAction::make('unbanned_model'),
                 Tables\Actions\DeleteBulkAction::make(),
                 Tables\Actions\ForceDeleteBulkAction::make(),
                 Tables\Actions\RestoreBulkAction::make(),
@@ -556,18 +521,29 @@ class UserResource extends Resource
         return trans('filament-user::user.resource.label');
     }
 
+    protected static function getNavigationBadge(): ?string
+    {
+        return (string)FilamentCacheModel::getUrlModelList(static fn() => static::getEloquentQuery()?->count(), app(static::$model)?->getTable());
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with(['roles', 'media'])
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
+                BannedAtScope::class,
+            ])
+            ->orderColumn();
+    }
+
+    protected static function getNavigationBadgeColor(): ?string
+    {
+        return (string)FilamentCacheModel::getUrlModelList(static fn() => static::getEloquentQuery()?->count(), app(static::$model)?->getTable()) < 10 ? 'warning' : 'primary';
+    }
+
     protected function getTitle(): string
     {
         return trans('filament-user::user.resource.title.resource');
     }
-
-//    protected static function getNavigationBadge(): ?string
-//    {
-//        return getNavigationBadgeHelper(static::$model);
-//    }
-//
-//    protected static function getNavigationBadgeColor(): ?string
-//    {
-//        return getNavigationBadgeHelper(static::$model) < 10 ? 'warning' : 'primary';
-//    }
 }

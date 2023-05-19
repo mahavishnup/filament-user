@@ -21,7 +21,7 @@ class ListUsers extends ListRecords
 
     protected function getTableRecordsPerPageSelectOptions(): array
     {
-        return [30, 60, 100, 150, -1];
+        return [30, 60, 100, 200, -1];
     }
 
     protected function getTitle(): string
