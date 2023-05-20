@@ -6,6 +6,7 @@ namespace io3x1\FilamentUser\Resources;
 
 use AbanoubNassem\FilamentPhoneField\Forms\Components\PhoneInput;
 use AlperenErsoy\FilamentExport\Actions\FilamentExportBulkAction;
+use App\Enums\MediaCollection;
 use App\Enums\OfficeList;
 use App\Enums\UserType;
 use App\Models\User;
@@ -253,9 +254,9 @@ class UserResource extends Resource
                 ->hidden($hidden)
                 ->required(false),
 
-            SpatieMediaLibraryFileUpload::make('pan')
+            SpatieMediaLibraryFileUpload::make(MediaCollection::PAN->value)
                 ->label('PAN PHOTO COPY')
-                ->collection('pan')
+                ->collection(MediaCollection::PAN->value)
                 ->disk('media')
                 ->hidden($hidden)
                 ->customProperties(['prefix' => app(static::$model)->getTable()])
@@ -409,9 +410,10 @@ class UserResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                SpatieMediaLibraryImageColumn::make('pan')
+                SpatieMediaLibraryImageColumn::make(MediaCollection::PAN->value)
                     ->label('PAN COPY')
-                    ->collection('pan')
+                    ->collection(MediaCollection::PAN->value)
+                    ->conversion(MediaCollection::PAN->name())
                     ->square()
                     ->toggleable(isToggledHiddenByDefault: true),
 
