@@ -9,6 +9,7 @@ use AlperenErsoy\FilamentExport\Actions\FilamentExportBulkAction;
 use App\Enums\MediaCollection;
 use App\Enums\OfficeList;
 use App\Enums\UserType;
+use App\Filament\Resources\Blog\PostResource\RelationManagers\MediaRelationManager;
 use App\Models\User;
 use App\Services\V1\FilamentCacheModel;
 use Closure;
@@ -19,7 +20,7 @@ use Filament\Tables\Columns\{SpatieMediaLibraryImageColumn};
 use Illuminate\Database\Eloquent\{Builder, SoftDeletingScope};
 use Illuminate\Support\Facades\{Auth, Hash};
 use Illuminate\Support\Str;
-use io3x1\FilamentUser\Resources\UserResource\Pages;
+use io3x1\FilamentUser\Resources\UserResource\{Pages, RelationManagers};
 use Phpsa\FilamentPasswordReveal\Password;
 use STS\FilamentImpersonate\Impersonate;
 use Widiu7omo\FilamentBandel\Actions\BanBulkAction;
@@ -547,5 +548,12 @@ class UserResource extends Resource
     protected function getTitle(): string
     {
         return trans('filament-user::user.resource.title.resource');
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            RelationManagers\TransactionsRelationManager::class,
+        ];
     }
 }
