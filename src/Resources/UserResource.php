@@ -526,7 +526,7 @@ class UserResource extends Resource
 
     protected static function getNavigationBadge(): ?string
     {
-        return (string)FilamentCacheModel::getUrlModelList(static fn() => static::getEloquentQuery()?->count(), app(static::$model)?->getTable());
+        return (string)FilamentCacheModel::getUrlModelList(static fn() => static::getEloquentQuery()?->count(), app(static::$model)?->getTable().'_resource');
     }
 
     public static function getEloquentQuery(): Builder
@@ -542,7 +542,7 @@ class UserResource extends Resource
 
     protected static function getNavigationBadgeColor(): ?string
     {
-        return (string)FilamentCacheModel::getUrlModelList(static fn() => static::getEloquentQuery()?->count(), app(static::$model)?->getTable()) < 10 ? 'warning' : 'primary';
+        return (string)FilamentCacheModel::getUrlModelList(static fn() => static::getEloquentQuery()?->count(), app(static::$model)?->getTable().'_resource') < 10 ? 'warning' : 'primary';
     }
 
     protected function getTitle(): string
