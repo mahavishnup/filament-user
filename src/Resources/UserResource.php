@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace io3x1\FilamentUser\Resources;
 
-use AbanoubNassem\FilamentPhoneField\Forms\Components\PhoneInput;
 use AlperenErsoy\FilamentExport\Actions\FilamentExportBulkAction;
 use App\Enums\MediaCollection;
 use App\Enums\OfficeList;
@@ -185,22 +184,20 @@ class UserResource extends Resource
     public static function getPhone(): array
     {
         return [
-            PhoneInput::make('phone')
+            TextInput::make('phone')
                 ->label('PHONE NO')
                 ->placeholder('Phone number')
-                ->initialCountry('in')
                 ->tel()
                 ->telRegex('/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\.\/0-9]*$/')
-                ->maxLength(191)
+                ->maxLength(15)
                 ->required(false),
 
-            PhoneInput::make('mobile')
+            TextInput::make('mobile')
                 ->label('MOBILE NO')
                 ->placeholder('Mobile number')
-                ->initialCountry('in')
                 ->tel()
                 ->telRegex('/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\.\/0-9]*$/')
-                ->maxLength(191)
+                ->maxLength(15)
                 ->required(false),
 
             Forms\Components\TextInput::make('address')
