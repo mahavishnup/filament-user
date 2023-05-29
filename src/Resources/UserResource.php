@@ -252,9 +252,9 @@ class UserResource extends Resource
                 ->hidden($hidden)
                 ->required(false),
 
-            SpatieMediaLibraryFileUpload::make(MediaCollection::PAN->value)
+            SpatieMediaLibraryFileUpload::make(MediaCollection::CARD->value)
                 ->label('PAN PHOTO COPY')
-                ->collection(MediaCollection::PAN->value)
+                ->collection(MediaCollection::CARD->value)
                 ->disk('media')
                 ->hidden($hidden)
                 ->customProperties(['prefix' => app(static::$model)->getTable()])
