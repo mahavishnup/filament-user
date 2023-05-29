@@ -408,10 +408,10 @@ class UserResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                SpatieMediaLibraryImageColumn::make(MediaCollection::PAN->value)
+                SpatieMediaLibraryImageColumn::make(MediaCollection::CARD->value)
                     ->label('PAN COPY')
-                    ->collection(MediaCollection::PAN->value)
-                    ->conversion(MediaCollection::PAN->name())
+                    ->collection(MediaCollection::CARD->value)
+                    ->conversion(MediaCollection::CARD->name())
                     ->square()
                     ->toggleable(isToggledHiddenByDefault: true),
 
